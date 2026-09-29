@@ -3,6 +3,7 @@ from ollama import Client
 import os
 from dotenv import load_dotenv
 
+
 #############################################################
 
 ## preppeing the hostclient for VLA qwen3-v;:2b running on remotekaggle server.
@@ -88,7 +89,7 @@ def chatting_VLM(chat_history:list[dict],modeling:str):
         print(f"error{e}")
 
 ## chatting with text models [ollama serve on localhost:11434 port], i.e our qwen3:1.7b
-def chatting_text_model(chat_history,modello):
+def chatting_text_model(chat_history:list[dict],modello:str):
     try:
         Stream_resp = chat(
             model=modello,
@@ -184,6 +185,10 @@ while y:
 
 
     print()
+
+
+
+
 
 
 
