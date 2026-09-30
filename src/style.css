@@ -87,6 +87,10 @@ body{
     height: 80%;
     width: 100%;
     border: 1px solid red;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    overflow-y: auto;   
 
 }
 

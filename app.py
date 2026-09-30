@@ -1,15 +1,18 @@
 from fastapi import FastAPI,Request
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse , StreamingResponse
 
 from pydantic import BaseModel
 
 
 # importing functions from custom file.
+import llamacorn
 from llamacorn import user_msg,assistant_msg,prompt_wit_att
 
-from llamacorn import chatting_text_model , chatting_VLM
+from asyncllama import cloud_cli
+
+import asyncllama
 
 from llamacorn import chat_history,models
 
@@ -57,18 +60,28 @@ async def resp_query(data:getQuery):
 
         elif user_query != None or user_query != '':
 
-            ## add the user query to chat hstory via user_message.
-            user_msg(user_query)
-            
+                        
             if (len(user_attachments)!=0):
                 vlm_model = models["VLM"]
-                chatting_VLM(chat_history=chat_history,modeling=vlm_model)
 
+                ## add attahcent prompt to chat history.
+                prompt_wit_att(user_query,user_attachments)
 
+                call = asyncllama.chatting_VLM(chat_history=chat_history,modeling=vlm_model)
 
-                ### noooooo, im doing smthig worn here,, coz all the functions from llamacorn .p works on synchrounnous client..
-                # but we need apply them on async Client. it's better to create anopther file , copy paste asame fucntion , with Async client,
-                # and modify the rturn behavior to suit the asynchronous behavor that can work on frontend too.
+                return StreamingResponse(content=call,media_type="text/plain")
+               
+
+            else:
+                ## add the user query to chat hstory via user_message.
+                user_msg(user_query)
+
+                text_model = models['text']
+
+                call = asyncllama.chatting_text_model(chat_history=chat_history,modello=text_model)
+                
+                return StreamingResponse(content=call,media_type="text/plain")
+                
 
 
 
