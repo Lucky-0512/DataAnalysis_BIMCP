@@ -4,7 +4,6 @@ import os
 from dotenv import load_dotenv
 
 
-
 #############################################################
 
 ## preppeing the hostclient for VLA qwen3-v;:2b running on remotekaggle server.
@@ -99,8 +98,7 @@ def chatting_text_model(chat_history:list[dict],modello:str):
             think=False,
 
         )
-
-               
+              
         # get the response.
         response_text = []
 

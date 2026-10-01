@@ -19,11 +19,19 @@
         </div>
         <div id="rightbar">
             <div id="profile">
+           
                 <div style="background-color: rgb(25, 25, 122);padding: 10px;border-radius: 5px;">DataCon</div>
             </div>
             <div id="conversation"></div>
             <div id="chatmenu">
-                <div id="attach">➕</div>
+                <div id="attach">
+
+                    <form enctype="multipart/form-data" id="attform">
+                        <label for="user-file">➕</label>
+                        <input type="file" id="user-file" name="uploaded_file" required style="display:none;" multiple accept="image/*">
+                      </form>
+
+                </div>
                 <div id="chatbox">
                     <input type="text" id="prompt" placeholder="enter the prompt...">
                 </div>

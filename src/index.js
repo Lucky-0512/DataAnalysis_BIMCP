@@ -14,10 +14,41 @@ const arrow = document.querySelector("#send")
 
 const converstaions = document.querySelector("#conversation") // parent div thatholds the user and assistant messages
 
+const fileIp = document.querySelector("#user-file")
+const formIP = document.querySelector("#attform")
+    
+// create formData object to access he   files a all data from the form.
+const FormD = new FormData(formIP)
+
+function handleAttchments(){
+
+    fileIp.addEventListener("change",()=>{
+        // check for non empty selection.
+        if(fileIp.files.length > 0){
+            console.log("file selection being submitted....")
+            // trigger the submit event on form element.
+            formIP.requestSubmit()
+
+        }
+    })
+
+    // now handling the submission, ne it got triggered.
+    formIP.addEventListener("submit",(e)=>{
+        e.preventDefault()
+
+        const files_arr = FormD.getAll("uploaded_file") // gets all the files selected from te input box element. "uploaded_file" referes to the name= attribte in the input box
+        
+        return files_arr
+    
+    })
+
+}
+// shall continue once i'm abck soon.....
 
 async function post_query() {
+      
     // append the list of image paths to thislist
-    const attachments = []
+    const attachments = handleAttchments()
 
     // get the user query text.
     const query = textbox.value
@@ -66,17 +97,12 @@ async function post_query() {
     converstaions.appendChild(ass_ui)
 
     // now calling the model from sevr for the respnse.
-   
+    FormD.append("query",query) // adding query attribute to frmdata object to store user query.
+
     const res = await fetch("/query/user",{
         method : "POST",
-        headers : {
-            "Content-Type":"application/json"
-        },
-        body : JSON.stringify({
-            'query' : query,
-            'attachments':attachments
-        })
-
+        // append the query into formdata object.
+        body : FormD
         })
 
         // now lets catch the dropping chunks via reader.
@@ -120,5 +146,5 @@ async function post_query() {
         }
 
     })
-
     
+
