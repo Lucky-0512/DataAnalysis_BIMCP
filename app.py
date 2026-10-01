@@ -4,6 +4,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse , StreamingResponse
 from fastapi import File,UploadFile ,Form
 
+from typing import List
+
 from pydantic import BaseModel
 
 from pathlib import Path
@@ -12,8 +14,6 @@ from pathlib import Path
 # importing functions from custom file.
 import llamacorn
 from llamacorn import user_msg,assistant_msg,prompt_wit_att
-
-from asyncllama import cloud_cli
 
 import asyncllama
 
@@ -41,7 +41,7 @@ def getPage(request:Request):
     attachments: UploadFile = File(...)   ## this is the standard syntax to catch the blob files from JS.'''
 
 @app.post("/query/user")
-async def resp_query(query:str = Form(...),attachments:UploadFile = File(...)):
+async def resp_query(query:str = Form(...),attachments:List[UploadFile] = File(...)):
 
     # rules of QUERY HANDLING [heylets be strict here loll]
     # 1. if query = empty and attachment = empty => do nothing.
@@ -58,7 +58,7 @@ async def resp_query(query:str = Form(...),attachments:UploadFile = File(...)):
         if (user_query == None or user_query == '') :
             return {"resp":"do ntg"}
 
-        elif (user_query == None or user_query == '') and (len([user_attachments]) == 0):
+        elif (user_query == None or user_query == '') and (len(user_attachments) == 0):
             return {"status":"Please tell me what you wanna do with attachemnt..or cancel the attachemnt(s).."}
 
         elif user_query != None or user_query != '':
@@ -72,7 +72,7 @@ async def resp_query(query:str = Form(...),attachments:UploadFile = File(...)):
 
 ####################### PEDNING ...UNRESOLVED .... PENDING ...UNRESOLVED => handle the file size limits.
 
-                for file in [user_attachments]:
+                for file in user_attachments:
                     contents = await file.read()
 
                     file_path = Base_url / f'{file.filename}'
