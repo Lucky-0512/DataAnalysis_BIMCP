@@ -139,7 +139,7 @@ def prompt_wit_att(msg:str,imgs:list[str]):
 
 ## INITIALIZING THE CONVERSATION LOOP.
 
-print("you can stop the conversation anytime by writng '/bye' ")
+'''print("you can stop the conversation anytime by writng '/bye' ")
 print(f" if you wanna include any attachment(s) just add '-a' to the message end after a space")
 
 while y:
@@ -184,7 +184,7 @@ while y:
 
 
     print()
-
+'''
 
 
 

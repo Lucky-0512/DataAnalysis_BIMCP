@@ -3,8 +3,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse , StreamingResponse
 from fastapi import File,UploadFile ,Form
-
-from typing import List
+import python_multipart
 
 from pydantic import BaseModel
 
@@ -40,8 +39,11 @@ def getPage(request:Request):
     query :str= Form(...)
     attachments: UploadFile = File(...)   ## this is the standard syntax to catch the blob files from JS.'''
 
+from typing import List
+
 @app.post("/query/user")
-async def resp_query(query:str = Form(...),attachments:List[UploadFile] = File(...)):
+async def resp_query(query:str = Form(...),
+                    uploaded_file: List[UploadFile] | None = File(None))  :
 
     # rules of QUERY HANDLING [heylets be strict here loll]
     # 1. if query = empty and attachment = empty => do nothing.
@@ -50,21 +52,20 @@ async def resp_query(query:str = Form(...),attachments:List[UploadFile] = File(.
         # => check if any attachment => yes => call the qwen3-vl:2b
         # => if no attchemnt => call the qwen3:1.7b txt model.
     
-    user_query = query
-    user_attachments = attachments
+    user_query = str(query)
+    user_attachments = uploaded_file
 
     try:
 
         if (user_query == None or user_query == '') :
             return {"resp":"do ntg"}
-
-        elif (user_query == None or user_query == '') and (len(user_attachments) == 0):
+  
+        elif (user_query == None or user_query == '') and (user_attachments != None):
             return {"status":"Please tell me what you wanna do with attachemnt..or cancel the attachemnt(s).."}
 
         elif user_query != None or user_query != '':
-
                         
-            if (len([user_attachments])!=0):
+            if ( (user_attachments) !=  None  ):
 
                 user_attList = []
                 ## save the attachment file and get the saved local url => append it to the list[strings]
@@ -73,7 +74,10 @@ async def resp_query(query:str = Form(...),attachments:List[UploadFile] = File(.
 ####################### PEDNING ...UNRESOLVED .... PENDING ...UNRESOLVED => handle the file size limits.
 
                 for file in user_attachments:
-                    contents = await file.read()
+                    if file.filename == '':
+                        continue
+
+                    contents = await file.read()  ### it's an async operation
 
                     file_path = Base_url / f'{file.filename}'
 

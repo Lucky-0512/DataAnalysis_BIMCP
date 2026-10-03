@@ -15,6 +15,7 @@ const arrow = document.querySelector("#send")
 const converstaions = document.querySelector("#conversation") // parent div thatholds the user and assistant messages
 
 const fileIp = document.querySelector("#user-file")
+
 const formIP = document.querySelector("#attform")
     
 // create formData object to access he   files a all data from the form.
@@ -24,32 +25,40 @@ function handleAttchments(){
 
     fileIp.addEventListener("change",()=>{
         // check for non empty selection.
-        if(fileIp.files.length > 0){
-            console.log("file selection being submitted....")
+        if(!fileIp.files.length || fileIp.files.length === 0){
+            // delete the default empty file object in the formdata first.
+            FormD.delete("uploaded_file")
+            
+        }
+        
+        else{
+            console.log("file selection being submitted from JS....")
             // trigger the submit event on form element.
             formIP.requestSubmit()
 
         }
+        console.log(FormD)
+
     })
 
     // now handling the submission, ne it got triggered.
     formIP.addEventListener("submit",(e)=>{
         e.preventDefault()
-
-        const files_arr = FormD.getAll("uploaded_file") // gets all the files selected from te input box element. "uploaded_file" referes to the name= attribte in the input box
         
-        return files_arr
-    
+        // gets all the files selected from te input box element,iterate over each append to fromdata. "uploaded_file" referes to the name= attribte in the input box
+       
+        for (const f of fileIp.files){
+            FormD.append("uploaded_file",f)
+        }
+                
     })
 
 }
-// shall continue once i'm abck soon.....
+
+handleAttchments()   // if any such events are triggered , it'all apply the attachment logic.
 
 async function post_query() {
       
-    // append the list of image paths to thislist
-    const attachments = handleAttchments()
-
     // get the user query text.
     const query = textbox.value
 
@@ -121,7 +130,7 @@ async function post_query() {
             // now let's decode the chunk.
             const decoder = new TextDecoder()
                         
-            const word  = decoder.decode(value)
+            const word  = decoder.decode(value,{stream:true})
 
             // append this word to the innercontent of the assistant ms UI.
                 ass_ui.textContent += word
