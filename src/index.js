@@ -17,48 +17,31 @@ const converstaions = document.querySelector("#conversation") // parent div that
 const fileIp = document.querySelector("#user-file")
 
 const formIP = document.querySelector("#attform")
-    
-// create formData object to access he   files a all data from the form.
-const FormD = new FormData(formIP)
 
-function handleAttchments(){
+let Form_query = new FormData()
 
-    fileIp.addEventListener("change",()=>{
-        // check for non empty selection.
-        if(!fileIp.files.length || fileIp.files.length === 0){
-            // delete the default empty file object in the formdata first.
-            FormD.delete("uploaded_file")
-            
-        }
-        
-        else{
-            console.log("file selection being submitted from JS....")
-            // trigger the submit event on form element.
-            formIP.requestSubmit()
+let FormD = new FormData()
 
-        }
-        console.log(FormD)
 
-    })
+// trigger the formdata initialization with files only when triggered the "change" event.
+fileIp.addEventListener("change",()=>{
 
-    // now handling the submission, ne it got triggered.
-    formIP.addEventListener("submit",(e)=>{
-        e.preventDefault()
-        
-        // gets all the files selected from te input box element,iterate over each append to fromdata. "uploaded_file" referes to the name= attribte in the input box
-       
-        for (const f of fileIp.files){
-            FormD.append("uploaded_file",f)
-        }
-                
-    })
+    // reset the old form object.
+    FormD = new FormData()
 
-}
+    fileIp.value = ''  // clear the old files.      
 
-handleAttchments()   // if any such events are triggered , it'all apply the attachment logic.
+    for (const f of fileIp.files){
+        // append the file to the formasta object with key=name assgined for fileip elemet..
+        FormD.append("uploaded_file",f)
+    }
+    console.log(FormD)
+
+})
+      
 
 async function post_query() {
-      
+
     // get the user query text.
     const query = textbox.value
 
@@ -103,10 +86,17 @@ async function post_query() {
     set_ui_styles(ass_ui)
 
     // first append to the convo div => then update the contents....
-    converstaions.appendChild(ass_ui)
+    converstaions.appendChild(ass_ui)   
 
-    // now calling the model from sevr for the respnse.
-    FormD.append("query",query) // adding query attribute to frmdata object to store user query.
+    // reset old query form.
+    Form_query = new FormData()
+
+    Form_query.append("query",query) // adding query attribute to frmdata object to store user query. 
+
+    // now append this into master formdata object.
+    for (let [key,value] of Form_query.entries()){
+        FormD.append(key,value)
+    }
 
     const res = await fetch("/query/user",{
         method : "POST",
@@ -136,12 +126,9 @@ async function post_query() {
                 ass_ui.textContent += word
 
 
-
         }
     
     }
-
-
 
     // now adding the event listener to listen for both click or enter events.
     arrow.addEventListener("click",(e)=>{
