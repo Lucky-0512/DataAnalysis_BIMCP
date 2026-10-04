@@ -61,7 +61,7 @@ y=yes
 
 models = {'text':'qwen3:1.7b','VLM':'qwen3-vl:2b'}
 
-chat_history = []
+chat_history:list[dict] = []
 
 # chat with VLM models.
 def chatting_VLM(chat_history:list[dict],modeling:str):

@@ -18,24 +18,25 @@ const fileIp = document.querySelector("#user-file")
 
 const formIP = document.querySelector("#attform")
 
-let Form_query = new FormData()
+const Form_query = new FormData()
 
-let FormD = new FormData()
-
+const FormD = new FormData()
 
 // trigger the formdata initialization with files only when triggered the "change" event.
 fileIp.addEventListener("change",()=>{
-
-    // reset the old form object.
-    FormD = new FormData()
-
-    fileIp.value = ''  // clear the old files.      
-
+   
     for (const f of fileIp.files){
         // append the file to the formasta object with key=name assgined for fileip elemet..
         FormD.append("uploaded_file",f)
     }
-    console.log(FormD)
+    
+    for (const p of FormD){
+        console.log(p)
+    }
+
+    for (const f of fileIp.files){
+        console.log(f)
+    }
 
 })
       
@@ -52,7 +53,6 @@ async function post_query() {
     user_div.className = "users"
 
     // create an assitant ui
-
     function set_ui_styles(user_div){
     user_div.style.width = "auto"
     user_div.style.maxWidth = "40%"
@@ -88,10 +88,8 @@ async function post_query() {
     // first append to the convo div => then update the contents....
     converstaions.appendChild(ass_ui)   
 
-    // reset old query form.
-    Form_query = new FormData()
-
-    Form_query.append("query",query) // adding query attribute to frmdata object to store user query. 
+    // adding query attribute to frmdata object to store user query. 
+    Form_query.append("query",query) 
 
     // now append this into master formdata object.
     for (let [key,value] of Form_query.entries()){
@@ -127,20 +125,29 @@ async function post_query() {
 
 
         }
+
+       // let's clear the old entries.
+       fileIp.value = ''
+       FormD.delete("uploaded_file")
+       FormD.delete("query")
+       Form_query.delete("query")
+     
     
     }
 
-    // now adding the event listener to listen for both click or enter events.
-    arrow.addEventListener("click",(e)=>{
+
+// now adding the event listener to listen for both click or enter events.
+arrow.addEventListener("click",(e)=>{
+    e.preventDefault()
+    post_query()
+        
+})
+textbox.addEventListener("keydown",(e)=>{
+    if (e.key == "Enter"){
         e.preventDefault()
         post_query()
-    })
-    textbox.addEventListener("keydown",(e)=>{
-        if (e.key == "Enter"){
-            e.preventDefault()
-            post_query()
-        }
+    }
 
-    })
-    
+})
+
 

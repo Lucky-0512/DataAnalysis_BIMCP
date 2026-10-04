@@ -66,10 +66,21 @@ async def resp_query(query:str = Form(...),
         elif user_query != None or user_query != '':
                         
             if ( (user_attachments) !=  None  ):
+               ## save the attachment file and get the saved local url => append it to the list[strings]
+                Base_url = Path.cwd() / "attachments"
+
+                '''import os
+
+                # first flush the files in attachments folders..
+                for filename in os.listdir(Base_url):   # list all content of dir
+                    file_path= os.path.join(Base_url,filename)
+
+                    if os.path.isfile(file_path):  # chck if it's file only and not a dir
+                        os.remove(file_path) # delete that file'''
+                    
 
                 user_attList = []
-                ## save the attachment file and get the saved local url => append it to the list[strings]
-                Base_url = Path.cwd() / "attachments"
+
 
 ####################### PEDNING ...UNRESOLVED .... PENDING ...UNRESOLVED => handle the file size limits.
 
@@ -106,7 +117,20 @@ async def resp_query(query:str = Form(...),
 
                 text_model = models['text']
 
-                call = asyncllama.chatting_text_model(chat_history=chat_history,modello=text_model)
+                ## apparentyl the chat model can only take the chat hisoty elemt if it's strucuted is like {role, content only ig}
+                ## let's reformat the elements with key image => role and contentonly making them text only..
+                
+                txt_only_msgs = []
+
+                for i in chat_history:
+                    if "images" in i.keys():
+                        txt_only_msgs.append({'role':i['role'],
+                                              'content':i['content']})
+                    else:
+                        txt_only_msgs.append(i)
+                        
+
+                call = asyncllama.chatting_text_model(chat_history=txt_only_msgs,modello=text_model)
                 
                 return StreamingResponse(content=call,media_type="text/plain")
                 
