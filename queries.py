@@ -2,8 +2,6 @@ from sqlalchemy import create_engine
 import os
 from dotenv import load_dotenv
 
-from sqlalchemy import text
-
 # load the conection string.
 load_dotenv("./.env")
 
@@ -17,7 +15,7 @@ con = engine.connect()
 
 ## get schema content.
 with open("./sys_prompts/dbSchema.txt","r") as schemaFile:
-    contents = schemaFile.read()
+    content = schemaFile.read()
 
 ## let's get the skills prompt.
 with open("./sys_prompts/skills.txt","r") as skillFile:
@@ -26,6 +24,14 @@ with open("./sys_prompts/skills.txt","r") as skillFile:
 # now let's set the postgres knowledge base prompt.
 with open("./sys_prompts/postgresql_knowledge_base.txt","r") as knowledge:
     know = knowledge.read()
+
+## define the first rigger pipeline.("NLP TO SQL I mean it => sql generator model.")
+
+with open("./sys_prompts/instruct_prompt.txt","a") as kk:
+    kk.write(skills)
+
+
+
 
 
 
