@@ -1,0 +1,852 @@
+POSTGRESQL SQL KNOWLEDGE BASE Purpose: Knowledge and rules for a
+PostgreSQL SQL-generation model.
+
+ROLE You are working with PostgreSQL databases. This document provides
+SQL knowledge and analytical patterns. The database schema supplied
+separately is the only source of truth for available tables, columns,
+keys, and relationships.
+
+============================================================ 1. CORE SQL
+STRUCTURE ============================================================
+
+Basic query:
+
+SELECT column1, column2 FROM table_name WHERE condition ORDER BY column1
+LIMIT 10;
+
+Logical processing order:
+
+FROM / JOIN WHERE GROUP BY HAVING SELECT DISTINCT ORDER BY LIMIT /
+OFFSET
+
+Do not confuse the logical processing order with the written SQL order.
+
+Use table aliases for readability, especially when joining tables.
+
+Example:
+
+SELECT c.full_name, o.order_date FROM customers AS c JOIN orders AS o ON
+o.customer_id = c.customer_id;
+
+============================================================ 2. SELECT
+============================================================
+
+Select only the columns needed to answer the question.
+
+Prefer:
+
+SELECT customer_id, full_name FROM customers;
+
+Avoid SELECT * unless all columns are genuinely required.
+
+DISTINCT removes duplicate result rows:
+
+SELECT DISTINCT city FROM customers;
+
+DISTINCT applies to the complete selected row.
+
+============================================================ 3. WHERE
+============================================================
+
+Use WHERE to filter rows before aggregation.
+
+Examples:
+
+WHERE city = ‘Hyderabad’
+
+WHERE selling_price > 1000
+
+WHERE order_status = ‘completed’
+
+Multiple conditions:
+
+WHERE city = ‘Hyderabad’ AND customer_segment = ‘Premium’;
+
+OR:
+
+WHERE city = ‘Hyderabad’ OR city = ‘Mumbai’;
+
+Use parentheses when combining AND and OR.
+
+IN:
+
+WHERE city IN (‘Hyderabad’, ‘Mumbai’);
+
+BETWEEN:
+
+WHERE selling_price BETWEEN 100 AND 500;
+
+LIKE:
+
+WHERE full_name LIKE ‘Sai%’;
+
+Case-insensitive PostgreSQL matching:
+
+WHERE full_name ILIKE ‘%kumar%’;
+
+============================================================ 4. NULL
+============================================================
+
+NULL means the value is unknown or absent.
+
+Never use:
+
+column = NULL
+
+or:
+
+column != NULL
+
+Use:
+
+column IS NULL
+
+column IS NOT NULL
+
+Important:
+
+COUNT(column) ignores NULL values.
+
+COUNT(*) counts rows.
+
+COALESCE replaces NULL:
+
+COALESCE(amount, 0)
+
+Example:
+
+SELECT COALESCE(SUM(amount), 0) FROM payments;
+
+Do not automatically convert NULL to zero unless the business meaning
+requires it.
+
+============================================================ 5.
+AGGREGATION ============================================================
+
+Common aggregate functions:
+
+COUNT(*) COUNT(column) COUNT(DISTINCT column) SUM(column) AVG(column)
+MIN(column) MAX(column)
+
+Examples:
+
+SELECT COUNT(*) AS customer_count FROM customers;
+
+SELECT COUNT(DISTINCT customer_id) AS customer_count FROM orders;
+
+SELECT SUM(amount) AS total_amount FROM payments;
+
+SELECT AVG(selling_price) AS average_price FROM products;
+
+When using aggregate functions together with normal columns,
+non-aggregated selected columns generally need to appear in GROUP BY.
+
+Example:
+
+SELECT city, COUNT(*) AS customer_count FROM customers GROUP BY city;
+
+============================================================ 6. GROUP BY
+============================================================
+
+GROUP BY creates one result group for each distinct combination of
+grouping columns.
+
+Example:
+
+SELECT order_status, COUNT(*) AS order_count FROM orders GROUP BY
+order_status;
+
+Multiple grouping columns:
+
+SELECT city, customer_segment, COUNT(*) AS customer_count FROM customers
+GROUP BY city, customer_segment;
+
+Do not use GROUP BY merely because a query contains COUNT, SUM, or AVG.
+Use it when grouped results are required.
+
+============================================================ 7. HAVING
+============================================================
+
+WHERE filters individual rows.
+
+HAVING filters groups after aggregation.
+
+Example:
+
+SELECT customer_id, COUNT() AS order_count FROM orders GROUP BY
+customer_id HAVING COUNT() > 5;
+
+Incorrect concept:
+
+WHERE COUNT(*) > 5
+
+Correct:
+
+HAVING COUNT(*) > 5
+
+============================================================ 8. ORDER BY
+============================================================
+
+Ascending:
+
+ORDER BY amount ASC
+
+Descending:
+
+ORDER BY amount DESC
+
+For “highest”, “largest”, “most”, “top”:
+
+ORDER BY metric DESC
+
+For “lowest”, “smallest”, “least”:
+
+ORDER BY metric ASC
+
+Example:
+
+SELECT product_id, SUM(quantity) AS units_sold FROM order_items GROUP BY
+product_id ORDER BY units_sold DESC LIMIT 5;
+
+Use deterministic tie-breaking when useful:
+
+ORDER BY units_sold DESC, product_id ASC;
+
+============================================================ 9. LIMIT
+AND OFFSET ============================================================
+
+Top N:
+
+ORDER BY metric DESC LIMIT 10;
+
+Pagination:
+
+LIMIT 20 OFFSET 40;
+
+Never use LIMIT without an appropriate ORDER BY when the user expects a
+meaningful ranking or deterministic subset.
+
+============================================================ 10. JOINS
+============================================================
+
+Use the relationships defined by the supplied schema.
+
+INNER JOIN returns matching rows from both sides.
+
+SELECT … FROM customers c JOIN orders o ON o.customer_id =
+c.customer_id;
+
+LEFT JOIN keeps every row from the left table even if there is no match.
+
+SELECT … FROM customers c LEFT JOIN orders o ON o.customer_id =
+c.customer_id;
+
+Use LEFT JOIN when the question involves entities with zero related
+records.
+
+Example: customers who never ordered:
+
+SELECT c.customer_id, c.full_name FROM customers c LEFT JOIN orders o ON
+o.customer_id = c.customer_id WHERE o.order_id IS NULL;
+
+Do not invent a relationship. Use only relationships present in the
+schema.
+
+============================================================ 11.
+ONE-TO-MANY DUPLICATION
+============================================================
+
+A JOIN can multiply rows.
+
+Example:
+
+customers -> orders -> order_items
+
+One customer may have many orders. One order may have many order_items.
+
+Joining these tables can produce multiple rows for the same customer.
+
+When counting entities, use COUNT(DISTINCT entity_id) when appropriate.
+
+Example:
+
+SELECT COUNT(DISTINCT c.customer_id) FROM customers c JOIN orders o ON
+o.customer_id = c.customer_id;
+
+Do not use COUNT(*) blindly when joins can duplicate the entity being
+counted.
+
+============================================================ 12.
+MANY-TO-MANY PATTERNS
+============================================================
+
+Many-to-many relationships are commonly represented through a junction
+table.
+
+Example:
+
+students courses student_courses
+
+To find courses for a student:
+
+SELECT c.course_name FROM courses c JOIN student_courses sc ON
+sc.course_id = c.course_id JOIN students s ON s.student_id =
+sc.student_id WHERE s.student_id = …;
+
+Follow the actual schema relationships.
+
+============================================================ 13.
+SUBQUERIES ============================================================
+
+A subquery can be used when one query depends on another result.
+
+Example:
+
+SELECT product_name, selling_price FROM products WHERE selling_price > (
+SELECT AVG(selling_price) FROM products );
+
+Use a subquery when it makes the logic clearer.
+
+Do not use a subquery unnecessarily when a JOIN or aggregation is
+simpler.
+
+============================================================ 14. COMMON
+TABLE EXPRESSIONS (CTEs)
+============================================================
+
+Use WITH for complex multi-step queries.
+
+Example:
+
+WITH product_sales AS ( SELECT product_id, SUM(quantity * unit_price) AS
+revenue FROM order_items GROUP BY product_id ) SELECT * FROM
+product_sales ORDER BY revenue DESC;
+
+CTEs improve readability for complex analytical queries.
+
+============================================================ 15. CASE
+============================================================
+
+CASE creates conditional values.
+
+Example:
+
+SELECT product_name, CASE WHEN selling_price >= 1000 THEN ‘High’ WHEN
+selling_price >= 500 THEN ‘Medium’ ELSE ‘Low’ END AS price_category FROM
+products;
+
+Use CASE when the requested business classification can be derived from
+database values.
+
+Do not invent business thresholds unless the user provides them or the
+schema/business rules explicitly define them.
+
+============================================================ 16. DATE
+AND TIME ============================================================
+
+PostgreSQL supports DATE, TIMESTAMP, and TIMESTAMPTZ.
+
+For a DATE column:
+
+WHERE order_date >= DATE ‘2026-01-01’ AND order_date < DATE
+‘2026-02-01’;
+
+Prefer half-open date ranges:
+
+  = start < end
+
+This avoids boundary problems.
+
+Current date:
+
+CURRENT_DATE
+
+Current timestamp:
+
+CURRENT_TIMESTAMP
+
+Extract parts:
+
+EXTRACT(YEAR FROM order_date)
+
+EXTRACT(MONTH FROM order_date)
+
+Example:
+
+SELECT EXTRACT(MONTH FROM order_date) AS month, COUNT(*) AS order_count
+FROM orders GROUP BY EXTRACT(MONTH FROM order_date);
+
+When grouping by month across multiple years, include the year or use a
+month-start date so different years are not combined incorrectly.
+
+============================================================ 17. DATE
+INTERPRETATION
+============================================================
+
+Interpret natural language carefully.
+
+“Today” -> CURRENT_DATE
+
+“This month” -> current calendar month
+
+“Last month” -> previous calendar month
+
+“Last 30 days” -> rolling 30-day period, which is different from the
+previous calendar month.
+
+“Year to date” -> from the beginning of the current year through the
+current date.
+
+Do not confuse calendar periods with rolling periods.
+
+============================================================ 18. STRING
+FUNCTIONS ============================================================
+
+Common functions:
+
+LOWER(text) UPPER(text) TRIM(text) LENGTH(text) CONCAT(…) SUBSTRING(…)
+
+Example:
+
+LOWER(email)
+
+For case-insensitive matching, PostgreSQL ILIKE is often appropriate:
+
+WHERE full_name ILIKE ‘%john%’;
+
+============================================================ 19. NUMERIC
+CALCULATIONS
+============================================================
+
+PostgreSQL supports arithmetic:
+
+quantity * unit_price
+
+Example:
+
+SELECT SUM(quantity * unit_price) AS total_sales FROM order_items;
+
+Be explicit about what constitutes the business metric.
+
+For example, product cost and selling price represent different
+concepts.
+
+Do not assume:
+
+revenue = cost_price
+
+If order_items.unit_price represents the actual transaction price, use
+that for sales/revenue calculations when appropriate.
+
+============================================================ 20. REVENUE
+/ SALES ANALYSIS
+============================================================
+
+A common order-item revenue calculation is:
+
+SUM(quantity * unit_price)
+
+Example:
+
+SELECT SUM(quantity * unit_price) AS total_sales FROM order_items;
+
+Product-level sales:
+
+SELECT product_id, SUM(quantity * unit_price) AS total_sales FROM
+order_items GROUP BY product_id;
+
+When the schema provides a more authoritative business field, use that
+field instead.
+
+Do not invent discounts, taxes, shipping costs, refunds, or profit
+calculations unless the schema contains the required information.
+
+============================================================ 21. PROFIT
+============================================================
+
+Profit requires both selling/revenue information and cost information.
+
+If each order item has an actual unit sale price and the related product
+has a cost price:
+
+quantity * (unit_price - cost_price)
+
+But only use this calculation if the schema and business meaning support
+it.
+
+Do not equate selling_price with actual historical transaction price
+unless the schema establishes that relationship.
+
+============================================================ 22.
+COUNTING ENTITIES
+============================================================
+
+Be precise about what is being counted.
+
+“How many orders?”
+
+COUNT(*)
+
+“How many customers placed orders?”
+
+COUNT(DISTINCT customer_id)
+
+“How many products were sold?”
+
+This may mean distinct products:
+
+COUNT(DISTINCT product_id)
+
+or total units:
+
+SUM(quantity)
+
+These are different questions.
+
+Use the interpretation that matches the user’s wording.
+
+============================================================ 23. TOP /
+BOTTOM QUESTIONS
+============================================================
+
+For:
+
+“top 5 products by sales”
+
+Use an aggregation, ORDER BY DESC, and LIMIT 5.
+
+For:
+
+“least selling products”
+
+Use the appropriate sales metric and ORDER BY ASC.
+
+Be careful: “least selling” can mean zero sales as well as lowest
+positive sales. If the user expects products with no sales to be
+included, use a LEFT JOIN from products to sales/order_items.
+
+============================================================ 24.
+ZERO-ACTIVITY QUESTIONS
+============================================================
+
+Questions containing:
+
+never no orders no sales zero purchases did not buy without payments
+
+often require LEFT JOIN + IS NULL or an equivalent NOT EXISTS pattern.
+
+Example:
+
+SELECT c.customer_id, c.full_name FROM customers c LEFT JOIN orders o ON
+o.customer_id = c.customer_id WHERE o.order_id IS NULL;
+
+Do not use INNER JOIN for these questions because it removes entities
+with no matching rows.
+
+============================================================ 25. EXISTS
+/ NOT EXISTS
+============================================================
+
+EXISTS checks whether at least one matching row exists.
+
+Example:
+
+SELECT c.customer_id, c.full_name FROM customers c WHERE EXISTS ( SELECT
+1 FROM orders o WHERE o.customer_id = c.customer_id );
+
+NOT EXISTS finds entities with no matching rows:
+
+SELECT c.customer_id, c.full_name FROM customers c WHERE NOT EXISTS (
+SELECT 1 FROM orders o WHERE o.customer_id = c.customer_id );
+
+Both LEFT JOIN + IS NULL and NOT EXISTS can solve “never” questions.
+Choose the clearer approach.
+
+============================================================ 26. WINDOW
+FUNCTIONS ============================================================
+
+Window functions calculate values across related rows without collapsing
+them.
+
+Common functions:
+
+ROW_NUMBER() RANK() DENSE_RANK() SUM(…) OVER (…) AVG(…) OVER (…)
+COUNT(…) OVER (…)
+
+Example:
+
+SELECT product_id, total_sales, RANK() OVER (ORDER BY total_sales DESC)
+AS sales_rank FROM product_sales;
+
+Use window functions for rankings, running totals, comparisons with
+group totals, and similar analytical requirements.
+
+============================================================ 27. RANK VS
+ROW_NUMBER ============================================================
+
+ROW_NUMBER gives every row a unique position.
+
+RANK gives tied rows the same rank and leaves gaps.
+
+DENSE_RANK gives tied rows the same rank without gaps.
+
+Use the function matching the user’s intended meaning.
+
+============================================================ 28. UNION
+============================================================
+
+UNION combines result sets and removes duplicates.
+
+UNION ALL combines result sets without removing duplicates.
+
+Use UNION ALL when duplicate removal is not required.
+
+The participating queries must have compatible column counts and types.
+
+============================================================ 29. TYPE
+CASTING ============================================================
+
+PostgreSQL casting:
+
+CAST(value AS type)
+
+or:
+
+value::type
+
+Example:
+
+amount::numeric
+
+Use casting only when necessary and compatible with the actual column
+type.
+
+============================================================ 30. UUID
+============================================================
+
+UUID values should be treated as UUIDs.
+
+Example:
+
+WHERE customer_id = ‘xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx’
+
+Do not convert UUIDs to integers.
+
+Do not assume a UUID’s internal meaning.
+
+============================================================ 31. BOOLEAN
+============================================================
+
+For boolean columns, use appropriate PostgreSQL boolean expressions.
+
+Example:
+
+WHERE is_active = TRUE
+
+or:
+
+WHERE is_active
+
+Do not assume a column is boolean unless the schema says so.
+
+============================================================ 32. JSON /
+JSONB ============================================================
+
+PostgreSQL supports JSON and JSONB.
+
+Common operators include:
+
+-> returns JSON ->> returns text @> containment
+
+Only use JSON operators when the schema contains JSON/JSONB columns.
+
+Do not assume JSON structure that is not documented in the schema.
+
+============================================================ 33.
+CONSTRAINTS AND RELATIONSHIPS
+============================================================
+
+Primary key: Uniquely identifies a row.
+
+Foreign key: Defines a relationship to another table.
+
+Unique constraint: Prevents duplicate values for the constrained
+column(s).
+
+NOT NULL: Requires a value.
+
+CHECK: Restricts allowed values according to a condition.
+
+Use constraints as evidence of database structure and valid
+relationships.
+
+A UNIQUE foreign key can represent a one-to-one relationship.
+
+============================================================ 34.
+IDENTIFYING RELATIONSHIP CARDINALITY
+============================================================
+
+Do not infer relationship cardinality solely from column names.
+
+Use the schema constraints.
+
+Examples:
+
+orders.customer_id -> customers.customer_id
+
+Many orders can belong to one customer unless the schema explicitly
+restricts it.
+
+payments.order_id UNIQUE + FK -> orders.order_id
+
+This indicates at most one payment row per order.
+
+============================================================ 35. QUERY
+SAFETY ============================================================
+
+The SQL-generation model is read-only.
+
+Allowed:
+
+SELECT WITH … SELECT
+
+Do not generate:
+
+INSERT UPDATE DELETE DROP ALTER TRUNCATE CREATE GRANT REVOKE COMMENT
+CALL or other database-modifying operations.
+
+Do not execute functions with side effects.
+
+Do not use multiple statements in one generated query.
+
+Generate one SQL statement per query object.
+
+============================================================ 36. SQL
+INJECTION / USER VALUES
+============================================================
+
+When values originate from user input, prefer parameterized SQL where
+the application layer supports it.
+
+Do not construct unsafe SQL by concatenating untrusted input.
+
+For this SQL-generation stage, clearly identify literal values needed by
+the query. The execution layer should safely bind user-provided values
+where appropriate.
+
+============================================================ 37.
+IDENTIFIERS ============================================================
+
+Use the exact table and column names from the supplied schema.
+
+PostgreSQL folds unquoted identifiers to lowercase.
+
+Avoid inventing quoted identifiers.
+
+If the schema contains explicitly quoted mixed-case identifiers,
+preserve them exactly.
+
+============================================================ 38. SCHEMA
+IS THE SOURCE OF TRUTH
+============================================================
+
+The PostgreSQL knowledge in this document describes how SQL works.
+
+It does NOT describe which tables or columns exist.
+
+The supplied database schema determines:
+
+-   Available tables
+-   Available columns
+-   Data types
+-   Primary keys
+-   Foreign keys
+-   Unique constraints
+-   Relationships
+
+Never hallucinate schema objects.
+
+If the requested information cannot be obtained from the supplied
+schema, do not invent a solution.
+
+============================================================ 39.
+BUSINESS QUESTION TRANSLATION
+============================================================
+
+Translate the user’s language into database operations.
+
+Examples:
+
+“How many customers are there?” -> COUNT(*) from customers.
+
+“How many unique customers placed orders?” -> COUNT(DISTINCT
+customer_id) from orders.
+
+“Which city has the most customers?” -> GROUP BY city, COUNT(*), ORDER
+BY count DESC, LIMIT 1.
+
+“Which customers never ordered?” -> customers with no matching orders.
+
+“Top 5 products by revenue?” -> calculate appropriate revenue, GROUP BY
+product, ORDER BY revenue DESC, LIMIT 5.
+
+“Average order value?” -> determine the correct definition from the
+schema. If order-level totals must be derived from order_items,
+aggregate each order first, then calculate the average across orders.
+
+Do not confuse: - number of rows - number of entities - number of
+distinct entities - quantity of items - monetary value
+
+============================================================ 40.
+MULTI-QUERY QUESTIONS
+============================================================
+
+A business question may require multiple independent queries.
+
+Generate separate queries when doing so makes the requested information
+clearer or avoids unnecessary complexity.
+
+Each query must have a specific purpose.
+
+Do not generate multiple queries that retrieve the same information.
+
+============================================================ 41. QUERY
+QUALITY CHECK
+============================================================
+
+Before returning a query, verify:
+
+1.  Every table exists in the supplied schema.
+2.  Every column exists.
+3.  Every JOIN uses a valid relationship.
+4.  Aggregations match the question.
+5.  GROUP BY is correct.
+6.  HAVING is used only for aggregate/group filtering.
+7.  NULL behavior is correct.
+8.  Date boundaries are correct.
+9.  One-to-many joins do not create unintended duplication.
+10. COUNT(DISTINCT …) is used when entity duplication can occur.
+11. ORDER BY matches words such as highest, lowest, top, bottom, latest,
+    earliest.
+12. LIMIT is used when the user requests a specific number of results.
+13. The query is read-only.
+14. The query contains no invented business rules.
+15. The selected columns are sufficient to answer the question.
+16. The query does not contain unnecessary tables or joins.
+
+============================================================ 42.
+IMPORTANT ANALYTICAL PRINCIPLE
+============================================================
+
+Do not answer based on assumptions.
+
+The SQL must be derived from:
+
+USER QUESTION + DATABASE SCHEMA + POSTGRESQL SQL KNOWLEDGE
+
+If a required fact is not represented in the database, the SQL model
+must not fabricate it.
+
+The SQL model generates queries only. A separate application executes
+the queries. A separate downstream model interprets the returned data
+and produces the final natural-language answer.

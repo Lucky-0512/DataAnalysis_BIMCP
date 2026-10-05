@@ -1,0 +1,69 @@
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
+
+CREATE TABLE public.customers (
+  customer_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  full_name text NOT NULL,
+  email text NOT NULL UNIQUE,
+  city text NOT NULL,
+  customer_segment text NOT NULL,
+  signup_date date NOT NULL,
+  CONSTRAINT customers_pkey PRIMARY KEY (customer_id)
+);
+CREATE TABLE public.suppliers (
+  supplier_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  supplier_name text NOT NULL,
+  city text NOT NULL,
+  rating numeric,
+  CONSTRAINT suppliers_pkey PRIMARY KEY (supplier_id)
+);
+CREATE TABLE public.products (
+  product_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  product_name text NOT NULL,
+  category text NOT NULL,
+  brand text NOT NULL,
+  supplier_id uuid NOT NULL,
+  cost_price numeric NOT NULL,
+  selling_price numeric NOT NULL,
+  CONSTRAINT products_pkey PRIMARY KEY (product_id),
+  CONSTRAINT products_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES public.suppliers(supplier_id)
+);
+CREATE TABLE public.orders (
+  order_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  customer_id uuid NOT NULL,
+  order_date date NOT NULL,
+  order_status text NOT NULL,
+  shipping_city text NOT NULL,
+  CONSTRAINT orders_pkey PRIMARY KEY (order_id),
+  CONSTRAINT orders_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(customer_id)
+);
+CREATE TABLE public.order_items (
+  order_item_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  order_id uuid NOT NULL,
+  product_id uuid NOT NULL,
+  quantity integer NOT NULL,
+  unit_price numeric NOT NULL,
+  CONSTRAINT order_items_pkey PRIMARY KEY (order_item_id),
+  CONSTRAINT order_items_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(order_id),
+  CONSTRAINT order_items_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(product_id)
+);
+CREATE TABLE public.payments (
+  payment_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  order_id uuid NOT NULL UNIQUE,
+  payment_date date NOT NULL,
+  payment_method text NOT NULL,
+  amount numeric NOT NULL,
+  payment_status text NOT NULL,
+  CONSTRAINT payments_pkey PRIMARY KEY (payment_id),
+  CONSTRAINT payments_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(order_id)
+);
+CREATE TABLE public.deliveries (
+  delivery_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  order_id uuid NOT NULL UNIQUE,
+  shipped_date date,
+  expected_date date,
+  delivered_date date,
+  delivery_status text NOT NULL,
+  CONSTRAINT deliveries_pkey PRIMARY KEY (delivery_id),
+  CONSTRAINT deliveries_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(order_id)
+);
