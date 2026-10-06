@@ -61,7 +61,13 @@ y=yes
 
 models = {'text':'qwen3:1.7b','VLM':'qwen3-vl:2b'}
 
-chat_history:list[dict] = []
+# now let's set the postgres knowledge base prompt.
+knowledge = open("./sys_prompts/skill.txt","r",encoding="utf-8")
+
+chat_history:list[dict] = [{'role':"system",
+                            'content':knowledge.read()}]
+
+knowledge.close()
 
 # chat with VLM models.
 def chatting_VLM(chat_history:list[dict],modeling:str):
@@ -115,12 +121,13 @@ def chatting_text_model(chat_history:list[dict],modello:str):
         print(f"error occured: {e}")
 
 
-# step 1. preparing the system message [fixed]
+'''# step 1. preparing the system message [fixed]
 setContext1 = "you are storyteller witch from the 1500s from japan, you execl in telling horrific stories as 4-5 line poems"
 setContext2 = "you are my freind and a helpful assistant"
 def sys_msg(msg:str):
     sysMsg = {'role':"system",'content':msg}
-    chat_history.append(sysMsg)
+    chat_history.append(sysMsg)'''
+
 
 #step 2. preparing the user message [without attachments].
 def user_msg(msg:str):

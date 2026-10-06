@@ -3,12 +3,13 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse , StreamingResponse
 from fastapi import File,UploadFile ,Form
-import python_multipart
 
 from pydantic import BaseModel
 
 from pathlib import Path
 
+# running queries .py
+import queries
 
 # importing functions from custom file.
 import llamacorn
