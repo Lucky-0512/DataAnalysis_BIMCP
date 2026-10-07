@@ -1,0 +1,18 @@
+# so , we have our main chat model [qwen3:1.7b - fixed model]
+## we have our nlp2sql model.
+
+job of main chat model :
+
+=> analyse the user prompt 
+=> check whther reevent to it's context or not.
+=> if yes - send it to NLP2SQLMODEL
+=> recieve the SQL output from the NLP2SQL model 
+=> analyse the SQL o/p and extract the insfits and summairse, ake the answer fulfilling the user's query.
+
+job of the nlp2sql model :
+ 
+ to genrate SQL queries against the input user query from chatmodel <----|
+ => recieve the SQL results from db                                      |
+ => validate the results based on user query.                            | LOOP back
+ => if yes => send the SQL result to main chat model as input.           |  
+       no => find the root cause of the mismatch and re run the queries.--

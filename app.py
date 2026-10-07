@@ -8,9 +8,6 @@ from pydantic import BaseModel
 
 from pathlib import Path
 
-# running queries .py
-import queries
-
 # importing functions from custom file.
 import llamacorn
 from llamacorn import user_msg,assistant_msg,prompt_wit_att
@@ -18,7 +15,6 @@ from llamacorn import user_msg,assistant_msg,prompt_wit_att
 import asyncllama
 
 from llamacorn import chat_history,models
-
 
 # creating an app instance.
 app = FastAPI()
@@ -127,11 +123,11 @@ async def resp_query(query:str = Form(...),
                     if "images" in i.keys():
                         txt_only_msgs.append({'role':i['role'],
                                               'content':i['content']})
-                    else:
+                    else:   
                         txt_only_msgs.append(i)
                         
 
-                call = asyncllama.chatting_text_model(chat_history=txt_only_msgs,modello=text_model)
+                call = asyncllama.chatting_text_model(chat_history=txt_only_msgs,modello=text_model,user_query=user_query)
                 
                 return StreamingResponse(content=call,media_type="text/plain")
                 

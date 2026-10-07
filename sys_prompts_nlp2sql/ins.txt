@@ -32,6 +32,7 @@ RULES:
 18. Do not generate redundant queries.
 19. Do not execute the queries.
 20. Do not explain the queries.
+21. DO NOT put a ';' semicolon after the query
 
 QUERY PLANNING:
 
