@@ -71,7 +71,7 @@ If the user's question cannot be answered using the provided schema, return:
 [
     {
         "need": "INSUFFICIENT_SCHEMA",
-        "query": ""
+        "query": "unable to answer the query! please provide more relevant context"
     }
 ]
 

@@ -16,11 +16,7 @@ engine = create_engine(str(conn_string),echo=True)
 # connection object.
 con = engine.connect()
 
-knowledging = open("./sys_prompts_nlp2sql/skill.txt",'r',encoding="utf-8") # open the knowledge file
-
-hist_nlp2sql = [{'role':"system","content":knowledging.read()}]  # a seperate chat history for the nlp2sql model.
-
-knowledging.close() # close the knowlege prmpt file.
+hist_nlp2sql = []  # a seperate chat history for the nlp2sql model.
 
 def append_ins(chat_history:list[dict]):
     
@@ -96,33 +92,32 @@ def querying_agent(query:str) -> str:
     # CREATING A RESPONSE QUERY.
     for query_el in resp_queries:
         if query_el.get("need") == "INSUFFICIENT_SCHEMA":
-            query_el["result"] = None
-            continue
-            
-
+            return query_el.get("query")
+                                          
         get_result = con.execute(text(query_el['query']))
 
         data = get_result.mappings().all()
         data = [dict(row) for row in data] 
+
+        print(data)
         # this is the table that is reprsewnted as a list of dictioaries, where each dictionary = row.
 
-        # now append this data element to the query el.
+        # now replace this data element with the query el.
         query_el["result"] = data
 
-    ## now convert the reesp_query as a string message response.
+    ## now convert the reesp_query as a string message response [JSON formatted string].
     resp_txt = json.dumps(resp_queries,indent=2,default=str)
 
     ## add this respnse to hist_nlp2sql.
     hist_nlp2sql.append({'role':'assistant','content':resp_txt})
 
-    ## remoe evry other mesage type with roles ither than 'system'.
+    ## remoe evry other mesage type with roles ither than 'system', to keep query-session like behavior.
     temp = []
     for j in hist_nlp2sql:
         if j["role"] == "system":
             temp.append(j)
 
     hist_nlp2sql = temp
-
 
     return resp_txt
 
