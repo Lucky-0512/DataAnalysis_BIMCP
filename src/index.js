@@ -77,8 +77,7 @@ async function post_query() {
 
     set_ui_styles(user_div)
     user_div.textContent = query
-    converstaions.appendChild(user_div)
-
+    converstaions.appendChild(user_div) // append this to main div.
 
     // let's create an assistant ui.
     const ass_ui = document.createElement("div")
